@@ -8,17 +8,17 @@
 	.data 
 
 szPrint1:       .asciz "\n\t\tRASM4 TEXT EDITOR\n\tData Structure Heap Memory Consumption: "
-szPrint2:       .asciz " bytes"
-szPrint3:       .asciz "\n\tNumber of Nodes: "
+szPrint2:       .asciz " bytes\n\tNumber of Nodes: "
 szOptions:      .asciz "<1> View all strings\n\n<2> Add string\n\t<a> from Keyboard\n\t<b> from File.\n\n<3> Delete string. Given an index #, delete the entire string and de-allocate memory (including the node).\n\n<4> Edit string. Given an index #, replace old string w/ new string. Allocate/De-allocate as needed.\n\n<5> String search. Regardless of case, return all strings that match the substring given.\n\n<6> Save File\n\n<7> Quit"
 
-szInputOption1: .asciz "Enter Option (0-7): "
+szInputOption1: .asciz "Enter Option (1-7): "
 szInputOption2: .asciz "Enter Option (a or b): "
 szInputString:  .asciz "Enter String: "
 strError:       .asciz "No data in linked list to print\n" //Todo: Remove
 szInvalidOption:.asciz "Invalid option selected.\n"
 szPrintResult:  .asciz "\nStrings:\n"
 szFileInput:    .asciz "Enter filename: "
+szFileLoc:      .asciz "./input.txt"
 
 kbBuf:          .skip MAXBYTES
 szBuffer:       .skip 16    // Small operations such as converting to ascii or int
@@ -29,7 +29,6 @@ chRightB:       .byte 93    // ]
 
 headPtr:        .quad  0    // Start of linked list
 tailPtr:        .quad  0    // Not sure what this is for
-strPtr:         .quad  0    // Todo: refactor this
 newNodePtr:     .quad  0    // Temp pointer to a new node
 iMemoryBytes:   .quad  0    // Total number of bytes being malloc'd
 iNumNodes:      .quad  0    // Number of nodes in the linked list
@@ -37,7 +36,7 @@ iNumNodes:      .quad  0    // Number of nodes in the linked list
     .text
 _start: 
 //========================================//
-
+// Main Code
     BL promptOptions            // Prints options to the user; returns result in x0
 
     // View All Strings
@@ -83,65 +82,30 @@ _start:
     B _start
 
 //========================================//
-    // Function: AddString
-addString:
-    str LR, [SP, #-16]!     // Store linker
-
-    getStringOption:
-    // Prompt user
-    ldr x0, =szInputOption2     // Load Address
-    bl putstring                // Print
-
-    // Get input from user
-    bl clearBuffer              // Clear input buffer
-    ldr x0, =kbBuf              // Allocate an output for the string
-    mov x1, MAXBYTES            // Associate storage size for getstring
-    bl getstring                // Get user input
-
-    ldr x0, =kbBuf              // Load address buffer from user
-    ldr x0, [x0]                // Load value entered
-    // Check if valid option (a or b)
-    cmp x0, #97                 // If 'a'
-    B.EQ appendStringOption     // then Invalid
-    cmp x0, #98                 // If 'b''
-    B.EQ appendFileOption       // then Invalid
-
-    ldr x0, =szInvalidOption    // Load address
-    bl putstring                // Print Invalid Option Prompt
-    B getStringOption           // Keep Looping
-
-    addStringEnd:
-        ldr LR, [SP], #16       // Load return location
-        RET                     // Return
-
-    appendStringOption:
-        bl clearBuffer          // Clear buffer
-        ldr x0, =szInputString  // Load prompt address
-        bl putstring            // Print string
-        ldr x0, =kbBuf          // Allocate an output for the string
-        mov x1, MAXBYTES        // Associate storage size for getstring
-        bl getstring            // Get user input
-
-        ldr x0, =kbBuf          // Load string data
-        BL appendString         // Call append string function, using x0 as string param
-        B addStringEnd          // End function
-
-    appendFileOption:
-
-        B addStringEnd          // End function
-
-//========================================//
     // Function: promptOptions
 promptOptions:
     str LR, [SP, #-16]!     // Store linker
     ldr x0, =szPrint1       // Load #1 header
     bl putstring            // Print
 
+    // Print number of allocated bytes
+    ldr x0, =iMemoryBytes   // Load address
+    ldr x0, [x0]            // Load value in address
+    ldr x1, =szBuffer   	// int64asc stores the result in a pointer
+    bl int64asc         	// Converts the int in x0 to ascii for printing
+    ldr x0, =szBuffer   	// Gets the value returned from int64asc
+    bl putstring            // Print int
+
     ldr x0, =szPrint2       // Load #2 header
     bl putstring            // Print
 
-    ldr x0, =szPrint3       // Load #3 header
-    bl putstring            // Print
+    // Print number of nodes
+    ldr x0, =iNumNodes      // Load address
+    ldr x0, [x0]            // Load value in address
+    ldr x1, =szBuffer   	// int64asc stores the result in a pointer
+    bl int64asc         	// Converts the int in x0 to ascii for printing
+    ldr x0, =szBuffer   	// Gets the value returned from int64asc
+    bl putstring            // Print int
 
     ldr x0, =chCr           // Load new line
     bl putch                // Print
@@ -190,17 +154,23 @@ clearBuffer:
     str LR, [SP, #-16]!     // Store linker
 
     ldr x0, =kbBuf
-    mov x1, #0             // 0 value
-    mov x2, #0             // Index
+    mov x1, #0              // 0 value
+    mov x2, #0              // Index
 
     clearBufferLoop:
-        strb w1, [x0, x2]    // Store null value
-        add x2, x2, #1        // Increment Index
-        cmp x2, MAXBYTES
-        B.EQ endLoop
+        ldrb w3, [x0, x2]   // Get buffer byte
+        cmp x3, #0          // If already cleared, end early for better preformance
+        B.EQ endBufferClear
+
+        strb w1, [x0, x2]   // Store null value
+        add x2, x2, #1      // Increment Index
+
+        cmp x2, MAXBYTES    // End loop if reached max amount of iterations
+        B.EQ endBufferClear
+
         B clearBufferLoop
 
-    endLoop:
+    endBufferClear:
     ldr LR, [SP], #16       // Load return location
     RET                     // Return
 

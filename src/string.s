@@ -1,14 +1,13 @@
-// Program: String1.s
-// Scott McCloskey
-// CS3B: Rasm3
-// 3.4.2023
-// Contains the first 10 string functions for Rasm3
+// Program: String.s
+// Scott M. & Jack E.
+// CS3B: Rasm4
+// 4.6.2023
 
 .data
-.global string1
+.global stringFunctions
 .text
 
-string1:
+stringFunctions:
 //==================================================//
 // Function String_length
 // Params:

@@ -1,4 +1,7 @@
 // Linked List Functions
+// Scott M. & Jack E.
+// CS3B: Rasm4
+// 4.6.2023
 
 .data
 .global linkedList
@@ -53,9 +56,23 @@ appendString:
     // Load string into dynamic data
 	mov x19, x0
 
+    // Increment number of malloc'd data (16 for node, + string length + 1)
+    bl strlength            // passes the malloc'd string in to get it's length
+    add x1, x0, #17         // length + node size + 1 (null char)
+    ldr x0, =iMemoryBytes   // Load var address
+    ldr x2, [x0]            // Get value inside
+    add x1, x1, x2          // Increment data from previous
+    str x1, [x0]            // Store value
+
+    ldr x0, =iNumNodes      // Load address
+    ldr x1, [x0]            // Get value
+    add x1, x1, #1          // Increment value by one
+    str x1, [x0]            // Store new value
+
     // Create new linked list node
     mov x0, #16             // size of 16
     bl malloc               // Dedicate memory
+
 
     // Store new dynamic node as newNodePtr
     ldr x1, =newNodePtr     // load address
