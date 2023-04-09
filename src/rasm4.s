@@ -9,11 +9,14 @@
 
 szPrint1:       .asciz "\n\t\tRASM4 TEXT EDITOR\n\tData Structure Heap Memory Consumption: "
 szPrint2:       .asciz " bytes\n\tNumber of Nodes: "
-szOptions:      .asciz "<1> View all strings\n\n<2> Add string\n\t<a> from Keyboard\n\t<b> from File.\n\n<3> Delete string. Given an index #, delete the entire string and de-allocate memory (including the node).\n\n<4> Edit string. Given an index #, replace old string w/ new string. Allocate/De-allocate as needed.\n\n<5> String search. Regardless of case, return all strings that match the substring given.\n\n<6> Save File\n\n<7> Quit"
+szOptions:      .asciz "<1> View all strings\n<2> Add string\n\t<a> from Keyboard\n\t<b> from File.\n<3> Delete string. Given an index #, delete the entire string and de-allocate memory (including the node).\n<4> Edit string. Given an index #, replace old string w/ new string. Allocate/De-allocate as needed.\n<5> String search. Regardless of case, return all strings that match the substring given.\n<6> Save File\n<7> Quit"
 
 szInputOption1: .asciz "Enter Option (1-7): "
 szInputOption2: .asciz "Enter Option (a or b): "
 szInputString:  .asciz "Enter String: "
+szEnterIndex:   .asciz "Enter Index: "
+szInvalidIndex: .asciz "Invalid index entered.\n"
+szDeleteSuccess:.asciz "Successfully deleted index!\n"
 strError:       .asciz "No data in linked list to print\n" //Todo: Remove
 szInvalidOption:.asciz "Invalid option selected.\n"
 szPrintResult:  .asciz "\nStrings:\n"
@@ -54,24 +57,25 @@ _start:
     // Delete string
     cmp x0, #3                  // If option != 3
     B.NE skipOption3            // Skip
-    B end                       // Else: Preform Option
+    B deleteString              // Else: Preform Option
     skipOption3:
 
     // Edit string
     cmp x0, #4                  // If option != 4
     B.NE skipOption4            // Skip
-    B end                       // Else: Preform Option
+    B editString                // Else: Preform Option
     skipOption4:
 
     // String search
     cmp x0, #5                  // If option != 5
     B.NE skipOption5            // Skip
-    B end                       // Else: Preform Option
+    B searchString              // Else: Preform Option
     skipOption5:
 
+    // Save File
     cmp x0, #6                  // If option != 6
     B.NE skipOption6            // Skip
-    B end                       // Else: Preform Option
+    B saveFile                  // Else: Preform Option
     skipOption6:
 
     cmp x0, #7                  // If option != 7
@@ -79,7 +83,7 @@ _start:
     B end                       // Else: Preform Option
     skipOption7:
 
-    B _start
+    B _start                    // Loop program
 
 //========================================//
     // Function: promptOptions

@@ -100,7 +100,14 @@ String_copy:
 
     // Get length of original string
     mov x1, x0              // Store copy of string address
-    bl String_length        // Gets the length, stores in x0
+    bl strlength            // Gets the length, stores in x0
+
+    // mov x29, x0
+    // ldr x1, =szBuffer   	// int64asc stores the result in a pointer
+    // bl int64asc         	// Converts the int in x0 to ascii for printing
+    // ldr x0, =szBuffer   	// Gets the value returned from int64asc
+    // bl putstring            // Print int
+    // mov x0, x29
 
     // Dedicate Memory
     add x0, x0, #1          // Add one for the null character
@@ -112,8 +119,8 @@ String_copy:
 
     mov x3, #0              // x3: i = 0
     SC_Loop:
-        ldrb w2, [x1, x3]   // Load character
-        cmp x2, #0          // If current char is null
+        ldrb w2, [x1, x3]   // Load character from original string
+        cmp w2, #0          // If current char is null
         B.EQ SC_End         // End
 
         strb w2, [x0, x3]   // Store character into allocated string
@@ -122,6 +129,10 @@ String_copy:
         B SC_Loop           // Keep looping
 
     SC_End:
+    // Ensure theres null at end
+    mov w2, #0              // Set null value
+    strb w2, [x0, x3]       // Store at end of loop
+
     // Make sure to free memory later to avoid memory leak
     ldr x3, [SP], #16       // POP
     ldr x2, [SP], #16       // POP

@@ -14,7 +14,7 @@
     .equ RW______, 0600     // 
     .equ CURRNDIR, -100     // Means that the file is in the local directory
 
-    szReadContents:     .skip 32768    // Buffer of file contents. 1 extra byte to hold a null character.
+    szReadContents:     .skip 32769    // Buffer of file contents. 1 extra byte to hold a null character.
 .global file
 .text
 
@@ -125,7 +125,7 @@ readFileChunk:
     mov x8, #63             // read 
     svc 0
 
-    mov x24, #0             // Reset contents counter
+    mov x24, #0             // Reset global contents counter
 
     ldr LR, [SP], #16       // Load return location
     RET                     // Return

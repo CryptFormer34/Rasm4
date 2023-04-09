@@ -50,6 +50,7 @@ freeLinkedList:
 appendString:
     str LR, [SP, #-16]!     // Store linker
     str x19, [SP, #-16]!    // Preserve
+
     // Malloc a new string
     bl String_copy          // Copies the static string into a dynamic string (rasm3 function)
 
@@ -135,7 +136,6 @@ appendString:
 // x0 = headPtr
 // Returns:
 // None
-// Recursive
 printLinkedList:
     str LR, [SP, #-16]!     // Store linker
     str x20, [SP, #-16]!    // Preserve
@@ -148,6 +148,7 @@ printLinkedList:
     ldr x0, [x0]            // Load malloc address of the first node
     cmp x0, #0              // If first node is null..
     B.EQ printError         // Print an error
+    mov x25, #0             // Current index = 0
 
     ldr x0, =headPtr        // get node address
     ldr x1, [x0]            // Load the malloc address
@@ -182,3 +183,172 @@ printRet:
     ldr LR, [SP], #16       // Load return location
     RET                     // Return
     
+//==================================================//
+// Function searchIndex
+// Params:
+//  x0 = index (int)
+// Returns:
+//  x0 = node
+//  x1 = previous node
+searchIndex:
+    str LR, [SP, #-16]!     // Store linker
+    str x20, [SP, #-16]!    // Preserve
+    str x21, [SP, #-16]!    // Preserve
+    str x22, [SP, #-16]!    // Preserve
+    str x23, [SP, #-16]!    // Preserve
+    str x24, [SP, #-16]!    // Preserve
+
+    mov x22, x0             // Save look for index
+    mov x23, #0             // Previous node
+    mov x21, #0             // Current index = 0
+
+    ldr x0, =headPtr        // Load address
+    ldr x0, [x0]            // Load malloc address of the first node
+    cmp x0, #0              // If first node is null..
+    B.EQ searchNone         // Print an error
+
+    ldr x0, =headPtr        // get node address
+    ldr x1, [x0]            // Load the malloc address
+
+loopSearch:
+
+    // Load next node
+    ldr x20, [x1, #8]       // Load last 8 bytes (node address)
+    //ldr x0, [x1]            // Load first 8 bytes (string address)
+
+    //sub x24, x21, #1        // Index - 1
+    cmp x21, x22            // If current index = search'd index
+    B.EQ searchFound        // Found
+
+    cmp x20, #0             // if next pointer is null.. end loop
+    B.EQ searchNone         // End Loop
+
+    mov x23, x1             // Move current node into the previous node save
+    add x21, x21, #1        // Increment count
+    mov x1, x20             // Put the next node's address in for the current
+    B loopSearch            // Keep Looping
+
+// Result: Couldnt find any
+searchNone:
+    mov x0, #0              // Returns none since didn't find
+    B searchEnd             // End
+
+// Result: Found
+searchFound:
+    mov x0, x1              // Put found node in x0
+    mov x1, x23             // Put previous node in x1
+
+searchEnd:
+    // Todo: could simplify registers
+
+    ldr x24, [SP], #16      // Preserve
+    ldr x23, [SP], #16      // Preserve
+    ldr x22, [SP], #16      // Preserve
+    ldr x21, [SP], #16      // Preserve
+    ldr x20, [SP], #16      // Preserve
+    ldr LR, [SP], #16       // Load return location
+    RET                     // Return
+
+
+//==================================================//
+// Function deleteIndex
+// Params:
+//  x0 = index (int)
+// Returns:
+//  x0 = result
+deleteIndex:
+    str LR, [SP, #-16]!         // Store linker
+    str x20, [SP, #-16]!        // Preserve
+    str x21, [SP, #-16]!        // Preserve
+    str x22, [SP, #-16]!        // Preserve
+    str x23, [SP, #-16]!        // Preserve
+
+    mov x20, x0                 // Stores a copy of the index
+
+    // Search for node
+    bl searchIndex              // Searches for the node using x0 as index. 
+                                // Returns the current node in x0 and the previous in x1.
+    cmp x0, #0                  // If couldn't find node..
+    B.EQ deleteInvalid          // Print Invalid
+    B preformDelete             // Else Preform delete
+
+    // If node is invalid
+    deleteInvalid:
+        mov x0, #0              // 0 for fail
+        B retDelete             // End
+
+    preformDelete:
+        // x0 has current node to delete
+        // x1 has previous
+        mov x21, x0             // Copy current node address
+        mov x22, x1             // Copy previous node address
+        ldr x23, [x0, #8]       // Load next node address
+        
+        // Update counters
+        ldr x0, [x21]           // Load string address
+        bl strlength            // Gets the string length in x0
+        ldr x1, =iMemoryBytes   // Load memory counter
+        ldr x2, [x1]            // Load old value
+        sub x2, x2, x0          // Subtract str length
+        sub x2, x2, #17         // Sub 1 for the string null + malloc
+        str x2, [x1]            // Store new value
+
+        ldr x1, =iNumNodes      // Load memory counter
+        ldr x2, [x1]            // Load old value
+        sub x2, x2, #1          // iNumNodes--
+        str x2, [x1]            // Store new value
+
+
+
+
+        // Free memory
+        ldr x0, [x21]           // Load string address
+        bl free                 // Free String memeory
+
+        mov x0, x21             // Load node address into x0
+        bl free                 // Free node
+
+
+
+    
+        // Return success
+        mov x0, #1              // Return success
+
+        // Free Memory
+        // If delete index is 0 (the head)..
+        cmp x20, #0             // If index is head
+        B.EQ deleteHead         // Delete head
+
+        cmp x23, #0             // If no child node..
+        B.EQ deleteEnd          // Delete End
+
+        // Delete middle here
+        str x23, [x22, #8]      // Loads the next node address into the previous
+        B retDelete             // End
+    deleteHead:
+        // Make index 1 the head
+        ldr x2, =headPtr        // Load head ptr
+
+        cmp x23, #0             // If next is invalid..
+        B.EQ deleteHeadInvalid  // Set head as invalid
+
+        str x23, [x2]           // Set the new headptr as the next node
+        B retDelete             // End
+
+        deleteHeadInvalid:
+            mov x1, #0          // Load temp value 0
+            str x1, [x2]        // Store null into headptr
+            B retDelete         // End
+
+    deleteEnd:
+        // Remove current index and update previous
+        mov x1, #0              // Get temp value 0
+        str x1, [x22, #8]       // Set next node ref to 0
+
+    retDelete:
+    ldr x23, [SP], #16      // Preserve
+    ldr x22, [SP], #16      // Preserve
+    ldr x21, [SP], #16      // Preserve
+    ldr x20, [SP], #16      // Preserve
+    ldr LR, [SP], #16       // Load return location
+    RET                     // Return
