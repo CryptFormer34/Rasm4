@@ -239,7 +239,6 @@ searchFound:
     mov x1, x23             // Put previous node in x1
 
 searchEnd:
-    // Todo: could simplify registers
 
     ldr x24, [SP], #16      // Preserve
     ldr x23, [SP], #16      // Preserve
@@ -352,3 +351,91 @@ deleteIndex:
     ldr x20, [SP], #16      // Preserve
     ldr LR, [SP], #16       // Load return location
     RET                     // Return
+
+//==================================================//
+// Function: searchString
+// Param:
+//  x0 = String to search
+//  x1 = Print?
+// Returns:
+//  x0 = Number of hits
+//  x1 = Number total transversed
+searchString:
+    str LR, [SP, #-16]!     // Store linker
+    str x20, [SP, #-16]!    // Preserve
+    str x21, [SP, #-16]!    // Preserve
+    str x22, [SP, #-16]!    // Preserve
+    str x23, [SP, #-16]!    // Preserve
+    str x24, [SP, #-16]!    // Preserve
+    str x25, [SP, #-16]!    // Preserve
+    str x27, [SP, #-16]!    // Preserve
+
+    mov x22, x0             // Save look for string
+    mov x23, #0             // Previous node
+    mov x21, #0             // Current index = 0
+    mov x27, #0             // hit counter = 0
+    mov x25, x1
+
+    ldr x0, =headPtr        // Load address
+    ldr x0, [x0]            // Load malloc address of the first node
+    cmp x0, #0              // If first node is null..
+    B.EQ stringNone         // Print an error
+
+    ldr x0, =headPtr        // get node address
+    ldr x24, [x0]           // Load the malloc address
+
+loopString:
+
+    // Load next node
+    ldr x20, [x24, #8]      // Load last 8 bytes (node address)
+    add x21, x21, #1        // Increment count
+    ldr x0, [x24]           // Param: The string to search (first 8 bytes)
+    mov x1, x22             // Param: The string to find
+    bl  indexOf             // find substring
+    cmp x0, #-1
+    B.NE stringFound        // Found
+stringContinue:
+
+    cmp x20, #0             // if next pointer is null.. end loop
+    B.EQ stringNone         // End Loop
+
+    mov x24, x20            // Put the next node's address in for the current
+    B loopString            // Keep Looping
+
+// Result: Couldnt find any
+stringNone:
+    mov x0, #0              // Returns none since didn't find any
+    B searchStringEnd       // End
+
+// Result: Found
+stringFound:
+    cmp x25, #0             // Should Print?
+    B.EQ skipSearchPrint    // False = Skip
+
+    ldr x0, =szLine         // line formatting
+    bl putstring            // print to terminal
+    mov x0, x21             // Get param index
+    bl printIndex           // Print index
+    ldr x0, [x24]           // Get string address in node
+    bl putstring            // Print String
+    ldr x0, =chCr           // Get address
+    bl putch                // Print newline
+    
+skipSearchPrint:
+    add x27, x27, #1        // increment hit counter
+    B stringContinue        // Keep looping
+
+searchStringEnd:
+    mov x0, x27             // Return number of hits
+    mov x1, x21             // Return total transversed
+    ldr x27, [SP], #16      // Preserve
+    ldr x25, [SP], #16      // Preserve
+    ldr x24, [SP], #16      // Preserve
+    ldr x23, [SP], #16      // Preserve
+    ldr x22, [SP], #16      // Preserve
+    ldr x21, [SP], #16      // Preserve
+    ldr x20, [SP], #16      // Preserve
+    ldr LR, [SP], #16       // Load return location
+    RET                     // Return
+
+    

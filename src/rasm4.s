@@ -14,21 +14,33 @@ szOptions:      .asciz "<1> View all strings\n<2> Add string\n\t<a> from Keyboar
 szInputOption1: .asciz "Enter Option (1-7): "
 szInputOption2: .asciz "Enter Option (a or b): "
 szInputString:  .asciz "Enter String: "
+szInputSearch:  .asciz "Search: "
 szEnterIndex:   .asciz "Enter Index: "
 szInvalidIndex: .asciz "Invalid index entered.\n"
 szDeleteSuccess:.asciz "Successfully deleted index!\n"
 strError:       .asciz "No data in linked list to print\n" //Todo: Remove
 szInvalidOption:.asciz "Invalid option selected.\n"
+szNotePad1:     .asciz "Search "
+szNotePad2:     .asciz " ("
+szNotePad3:     .asciz " hits in 1 file of "
+szNotePad4:     .asciz " searched)\n"
+szLine:         .asciz "Line "
 szPrintResult:  .asciz "\nStrings:\n"
 szFileInput:    .asciz "Enter filename: "
 szFileLoc:      .asciz "./input.txt"
 
 kbBuf:          .skip MAXBYTES
 szBuffer:       .skip 16    // Small operations such as converting to ascii or int
+dbSearch:       .skip 16    //user input for string search
+ptrString:      .quad 0     //pointer to the string search (initialized to null)
+ptrSubString:   .quad 0     //pointer to the substring to find (initialized to null)
+szS1:           .skip 21
+szS2:           .skip 21
 chCr: 		    .byte 10    // new line
 chSpace:        .byte 32    // Space
 chLeftB:        .byte 91    // [
 chRightB:       .byte 93    // ]       
+chQuote:        .byte 34    // "
 
 headPtr:        .quad  0    // Start of linked list
 tailPtr:        .quad  0    // Not sure what this is for
@@ -69,7 +81,7 @@ _start:
     // String search
     cmp x0, #5                  // If option != 5
     B.NE skipOption5            // Skip
-    B searchString              // Else: Preform Option
+    B searchStringOption        // Else: Preform Option
     skipOption5:
 
     // Save File

@@ -114,10 +114,83 @@ editString:
 
 //==================================================//
 // Function: searchString [5]
-searchString:
+searchStringOption:
     str LR, [SP, #-16]!     // Store linker
+    str x20, [SP, #-16]!    // Preserve
+    str x21, [SP, #-16]!    // Preserve
+    str x22, [SP, #-16]!    // Preserve
+    str x23, [SP, #-16]!    // Preserve
+    str x24, [SP, #-16]!    // Preserve
+    str x27, [SP, #-16]!    // Preserve
 
-    searchStringEnd:
+    ldr x0, =szInputSearch  // Load prompt
+    bl  putstring           // Print to terminal
+
+    // Get input string to search for
+    bl clearBuffer              // Clear input buffer
+    ldr x0, =kbBuf              // Allocate an output for the string
+    mov x1, MAXBYTES            // Associate storage size for getstring
+    bl getstring                // Get user input
+
+    // Print hits text
+    ldr x0, =szNotePad1         // Load address
+    bl putstring                // Print 
+
+    ldr x0, =chQuote            // Load address
+    bl putch                    // Print "
+
+    // Print string
+    ldr x0, =kbBuf              // Load address
+    bl putstring
+
+    ldr x0, =chQuote            // Load address
+    bl putch                    // Print "
+
+    // Print hits text 2
+    ldr x0, =szNotePad2
+    bl putstring
+
+    // Search the linked list
+    ldr x0, =kbBuf              // Get buffer
+    mov x1, #0
+    bl searchString             // Returns the number of occurances in x0
+    mov x21, x1                 // Saves total transversed
+
+    // Print hits
+    ldr x1, =szBuffer   	    // int64asc stores the result in a pointer
+    bl int64asc         	    // Converts the int in x0 to ascii for printing
+    ldr x0, =szBuffer   	    // Gets the value returned from int64asc
+    bl putstring                // Print int
+
+    // Print hits text 3
+    ldr x0, =szNotePad3
+    bl putstring
+
+    // Print number transversed
+    mov x0, x21
+    ldr x1, =szBuffer   	    // int64asc stores the result in a pointer
+    bl int64asc         	    // Converts the int in x0 to ascii for printing
+    ldr x0, =szBuffer   	    // Gets the value returned from int64asc
+    bl putstring                // Print int
+
+    // Print hits text 4
+    ldr x0, =szNotePad4
+    bl putstring
+
+    // Search the linked list and print
+    ldr x0, =kbBuf              // Get buffer
+    mov x1, #1                  // Set print = True
+    bl searchString             // Params: x0 = String
+
+
+
+    mov x0, #0
+    ldr x27, [SP], #16      // Preserve
+    ldr x24, [SP], #16      // Preserve
+    ldr x23, [SP], #16      // Preserve
+    ldr x22, [SP], #16      // Preserve
+    ldr x21, [SP], #16      // Preserve
+    ldr x20, [SP], #16      // Preserve
     ldr LR, [SP], #16       // Load return location
     RET                     // Return
 
