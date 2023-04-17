@@ -438,4 +438,92 @@ searchStringEnd:
     ldr LR, [SP], #16       // Load return location
     RET                     // Return
 
+//==================================================//
+// Function editString
+// Params:
+//  x0 = index (int)
+// Returns:
+//  x0 = result
+editString:
+    str LR, [SP, #-16]!         // Store linker
+    str x20, [SP, #-16]!        // Preserve
+    str x21, [SP, #-16]!        // Preserve
+    str x22, [SP, #-16]!        // Preserve
+    str x23, [SP, #-16]!        // Preserve
+    str x24, [SP, #-16]!        // Preserve
+
+
+    mov x20, x0                 // Stores a copy of the index
+
+    // Search for node
+    bl searchIndex              // Searches for the node using x0 as index. 
+                                // Returns the current node in x0 and the previous in x1.
+    cmp x0, #0                  // If couldn't find node..
+    B.EQ editInvalid            // Print Invalid
+    B preformEdit               // Else Preform dedit
+
+    // If node is invalid
+    editInvalid:
+        ldr x0, =szInvalidIndex
+        bl  putstring
+        mov x0, #0              // 0 for fail
+        B retEdit               // End
+
+    preformEdit:
+        // x0 has current node to edit
+        mov x21, x0             // Copy current node address
+        ldr x0, [x21]           // Load old string
+        bl  String_length       // Get length
+        mov x23, x0             // hold onto old length
+
+        // Prompt user for new string
+        ldr x0, =szInputString  // Load prompt address
+        bl putstring            // Print string
+        bl clearBuffer          // Clear buffer
+        ldr x0, =kbBuf          // Allocate an output for the string
+        mov x1, MAXBYTES        // Associate storage size for getstring
+        bl getstring            // Get user input
+       
+        // Clear previous string
+        ldr x0, [x21]           // Load old string address
+        bl  free
+
+        // Print index
+        mov x0, x20             // Get param index
+        bl printIndex           // Print index
+
+        // Malloc new string
+        ldr x0, =kbBuf          // Load string data
+        bl String_copy          // Copy (malloc)
+        mov x24, x0             // copy address output from String_copy
+        str x0, [x21]           // Put into first 8 bytes of node
+
+        // Print Line
+        bl putstring
+
+        //get length of new string
+        mov x0, x24
+        bl String_length        // Gets the string length in x0
+
+        ldr x1, =iMemoryBytes   // Load memory counter
+        ldr x3, [x1]            // Load old value
+        add x3, x3, x0          // Add New Str Length
+        sub x3, x3, x23         // Sub Old Str Length
+        str x3, [x1]            // Store new value
+
+        //new line
+        ldr x0, =chCr           // Get address
+        bl putch                // Print newline
+    
+
+    retEdit:
+    ldr x24, [SP], #16      // Preserve
+    ldr x23, [SP], #16      // Preserve
+    ldr x22, [SP], #16      // Preserve
+    ldr x21, [SP], #16      // Preserve
+    ldr x20, [SP], #16      // Preserve
+    ldr LR, [SP], #16       // Load return location
+    RET                     // Return
+
+
     

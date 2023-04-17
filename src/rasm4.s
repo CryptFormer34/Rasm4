@@ -28,6 +28,7 @@ szLine:         .asciz "Line "
 szPrintResult:  .asciz "\nStrings:\n"
 szFileInput:    .asciz "Enter filename: "
 szFileLoc:      .asciz "./input.txt"
+szFilePath:     .asciz "./output.txt"
 
 kbBuf:          .skip MAXBYTES
 szBuffer:       .skip 16    // Small operations such as converting to ascii or int
@@ -75,7 +76,7 @@ _start:
     // Edit string
     cmp x0, #4                  // If option != 4
     B.NE skipOption4            // Skip
-    B editString                // Else: Preform Option
+    B editStringOption          // Else: Preform Option
     skipOption4:
 
     // String search

@@ -3,6 +3,18 @@
 // CS3B: Rasm4
 // 4.6.2023
 
+// FILE MODES
+.equ	R,	00 		// read only
+.equ 	W,	01 		// write only
+.equ 	RW, 	02 		// read write
+.equ 	T_RW, 	01002 		// truncate read write
+.equ 	C_W, 	0101 		// create file if does not exist
+.equ 	CREATEWOT, 01101 	// create if file does not exist for writing
+
+// FILE PERMISSIONS
+.equ 	RW_RW___, 0644
+.equ 	CURRNDIR, -100
+
 .data
 .global options
 .text
@@ -103,12 +115,35 @@ deleteString:
 
 //==================================================//
 // Function: editString [4]
-editString:
+editStringOption:
     str LR, [SP, #-16]!     // Store linker
+    str x20, [SP, #-16]!        // Preserve
+    str x21, [SP, #-16]!        // Preserve
+    str x22, [SP, #-16]!        // Preserve
+    str x23, [SP, #-16]!        // Preserve
+    str x24, [SP, #-16]!        // Preserve
 
+    // Get user to enter index
+    ldr x0, =szEnterIndex       // Load address
+    bl putstring                // Prompt user
+    bl clearBuffer              // Clear input buffer
+    ldr x0, =kbBuf              // Allocate an output for the string
+    mov x1, MAXBYTES            // Associate storage size for getstring
+    bl getstring                // Get user input
+
+    // Get index as int
+    ldr x0, =kbBuf              // Get buffer
+    bl ascint64                 // Get value as int into x0
+    bl editString               // replaces element at defined index
 
 
     editStringEnd:
+    mov x0, #0
+    ldr x24, [SP], #16      // Preserve
+    ldr x23, [SP], #16      // Preserve
+    ldr x22, [SP], #16      // Preserve
+    ldr x21, [SP], #16      // Preserve
+    ldr x20, [SP], #16      // Preserve
     ldr LR, [SP], #16       // Load return location
     RET                     // Return
 
@@ -198,6 +233,35 @@ searchStringOption:
 // Function: saveFile [6]
 saveFile:
     str LR, [SP, #-16]!     // Store linker
+
+    mov	X0, #CURRNDIR		//special current directory number
+	ldr	X1, =szFilePath 	//X1 has filepath
+    mov	X2, #CREATEWOT 		//FLAGS
+    mov	X3, #RW_RW___ 		//MODE
+    mov 	X8, 0x38 		//open
+    svc 	0 			//returns file descriptor in x0
+// ==================== Opening/creating file ===================
+
+
+// ==================== Writing to file =========================
+   // x0 already has file descriptor from openat syscall
+        ldr x0, =szFileInput        // Load Prompt
+        bl putstring                // Print
+        bl clearBuffer              // Clear input buffer
+        ldr x0, =kbBuf              // Allocate an output for the string
+        mov x1, MAXBYTES            // Associate storage size for getstring
+        bl getstring                // Get user input
+
+        ldr x0, =kbBuf              // Load input buffer (the file location)
+        bl appendFileContents       // Passes x0 as a param to get x0 as the file contents
+    	ldr 	X1, =szS1 		//load string address
+    	mov 	X2, #16 		//mov size of string into X2
+    	mov 	X8, #64 		//write
+    	svc 	0			//return
+// ==================== Writing to file =========================
+
+    	mov 	X8, #57 		//close file
+    	svc 	0			//returm
 
     saveFileEnd:
     ldr LR, [SP], #16       // Load return location
