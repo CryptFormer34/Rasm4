@@ -348,6 +348,7 @@ indexOf:
     //x6 = s2 index (in loop)
     //x7 = first character of s2
 
+    // Convert to lowercase
     mov x23, x1             // Copy address
     bl String_copy          // Copy string in x0
     bl String_toLowerCase
@@ -357,64 +358,45 @@ indexOf:
     bl String_copy          // Copy string in x0
     bl String_toLowerCase
     mov x23, x0             // Copy into x23
-    mov x0, x24             // Move into x0
+    mov x0, x24             // Move into x0 (String Address)
 
-    bl String_length     //calls String_length function
-    mov x1, x23
+    // Compare the two strings
+    bl String_length        // Calls function
+    mov x1, x23             // Setups x1 to have length of string 0
 
-    mov x22, #0           //moves 0 into x2
-
+    mov x22, #0             // Init counter = 0
     ldrb w7, [x1, #0]    //loads first s2 character value into w7
-
+    
 SLIO3_loopreturn:
     mov x6, #0           //moves 0 into x6
-
     mov x25, #-1          //moves -1 into x5
-
     ldrb w7, [x1, #0]    //loads first s2 character value into w7
-
 SLIO3_loop:
-    
-
     ldrb w3, [x24, x0]    //loads current index value into w3
-
     cmp w3, w7           //compares w3 and character in w1
     B.EQ SLIO3_match            //if equal jump to exit
-
     sub x0, x0, #1       //x0 = x0 - 1
-
     cmp x0, #0           //compares x2 and x0
     B.LT SLIO3_exit            //if greater than jump to exit
-
     b SLIO3_loop               //unconditional jump to top of loop
 
     //while (byte != x1 character or index <= string_length)
-
 SLIO3_match:
     mov x25, x0      //moves x0 into x5
-
     mov x22, x0      //moves x0 into x4
-
     sub x0, x0, #1  //x0 = x0 - 1
-
 SLIO3_loop2:
-
     add x6, x6, #1       //x6 = x6 + 1
-
     add x22, x22, #1       //x2 = x2 + 1
-
     ldrb w3, [x24, x22]    //loads current index value into w3
-
     ldrb w7, [x1, x6]    //loads s2 character value into w7
 
     cmp w7, #0           //compare w7 to null
     B.EQ SLIO3_exit            //if equal jump to exit
-
     cmp w3, w7           //compares w3 and w7
     B.NE SLIO3_loopreturn      //if not equal jump to loopreturn
 
     b SLIO3_loop2              //unconditional jumpt to loop2
-
 
 SLIO3_exit:
     // Free Memory

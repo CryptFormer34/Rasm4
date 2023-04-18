@@ -34,7 +34,7 @@ freeLinkedList:
         B.EQ freeLoopEnd        // Jump to end
 
         mov x20, x21        // Move the next node ptr as current
-        B freeLoopEnd          // Keep Looping
+        B loopFree         // Keep Looping
 
     freeLoopEnd:
 

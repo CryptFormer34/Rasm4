@@ -29,6 +29,7 @@ szPrintResult:  .asciz "\nStrings:\n"
 szFileInput:    .asciz "Enter filename: "
 szFileLoc:      .asciz "./input.txt"
 szFilePath:     .asciz "./output.txt"
+szNewLine:      .asciz "\n"
 
 kbBuf:          .skip MAXBYTES
 szBuffer:       .skip 16    // Small operations such as converting to ascii or int

@@ -10,6 +10,8 @@
 .equ 	T_RW, 	01002 		// truncate read write
 .equ 	C_W, 	0101 		// create file if does not exist
 .equ 	CREATEWOT, 01101 	// create if file does not exist for writing
+.equ    APPEND_CR, 02102    // Append, Read, Create
+.equ    TRUNCATE,  01102
 
 // FILE PERMISSIONS
 .equ 	RW_RW___, 0644
@@ -233,37 +235,97 @@ searchStringOption:
 // Function: saveFile [6]
 saveFile:
     str LR, [SP, #-16]!     // Store linker
+    str x20, [SP, #-16]!    // Preserve
+    str x21, [SP, #-16]!    // Preserve
+    str x22, [SP, #-16]!    // Preserve
+    str x23, [SP, #-16]!    // Preserve
 
-    mov	X0, #CURRNDIR		//special current directory number
-	ldr	X1, =szFilePath 	//X1 has filepath
-    mov	X2, #CREATEWOT 		//FLAGS
-    mov	X3, #RW_RW___ 		//MODE
-    mov 	X8, 0x38 		//open
-    svc 	0 			//returns file descriptor in x0
-// ==================== Opening/creating file ===================
+    //find and open text file inputted by user
+    ldr x0, =szFileInput        // Load Prompt
+    bl putstring                // Print
+    bl clearBuffer              // Clear input buffer
+    ldr x0, =kbBuf              // Allocate an output for the string
+    mov x1, MAXBYTES            // Associate storage size for getstring
+    bl getstring                // Get user input
 
+    // ==================== Opening/creating file ===================
+    // open output file and truncate
+    mov	x0, #CURRNDIR		//special current directory number
+    ldr x1, =kbBuf          // Load input buffer (the file location)
+    mov	x2, #TRUNCATE 		//FLAGS
+    mov	x3, #RW_RW___ 		//MODE
+    mov x8, 0x38 		    //open
+    svc 0 			        //returns file descriptor in x0
 
-// ==================== Writing to file =========================
-   // x0 already has file descriptor from openat syscall
-        ldr x0, =szFileInput        // Load Prompt
-        bl putstring                // Print
-        bl clearBuffer              // Clear input buffer
-        ldr x0, =kbBuf              // Allocate an output for the string
-        mov x1, MAXBYTES            // Associate storage size for getstring
-        bl getstring                // Get user input
+    cmp x0, #0              // If error opening file
+    B.EQ endSaveFile        // Exit
 
-        ldr x0, =kbBuf              // Load input buffer (the file location)
-        bl appendFileContents       // Passes x0 as a param to get x0 as the file contents
-    	ldr 	X1, =szS1 		//load string address
-    	mov 	X2, #16 		//mov size of string into X2
-    	mov 	X8, #64 		//write
-    	svc 	0			//return
-// ==================== Writing to file =========================
+    mov X8, #57 	        // Close file
+    svc 0			        // Execute syscall
 
-    	mov 	X8, #57 		//close file
-    	svc 	0			//returm
+    // ==================== Opening/creating file ===================
+    // open output file and append
+    mov	x0, #CURRNDIR		//special current directory number
+    ldr x1, =kbBuf          // Load input buffer (the file location)
+    mov	x2, #APPEND_CR 		// FLAGS
+    mov	x3, #RW_RW___ 		// MODE
+    mov x8, 0x38 		    // open
+    svc 0 			        // returns file descriptor in x0
+    mov x20, x0             // Save file descriptor 
 
-    saveFileEnd:
+    cmp x0, #0              // If error opening file
+    B.EQ endSaveFile        // Exit
+
+    // ==================== Writing to file =========================
+    // x0 already has file descriptor from openat syscall
+    // Begin Loop
+    ldr x0, =headPtr        // Load address
+    ldr x0, [x0]            // Load malloc address of the first node
+    cmp x0, #0              // If first node is null..
+    B.EQ endSaveFile        // Print an error
+    ldr x0, =headPtr        // get node address
+    ldr x22, [x0]           // Load the malloc address
+
+loopLL:
+    // Load next node
+    ldr x21, [x22, #8]      // Load last 8 bytes (node address)
+
+    // Get length of string
+    ldr x0, [x22]           // Load string address
+    bl String_length        // Get string length into x0
+    mov x2, x0              // Move to x2
+
+    // Print String to File
+    mov x0, x20             // Get file descriptor
+    ldr x1, [x22]           // Load string address
+    mov x8, #64 		    // Write
+    svc 0			        // Call Syscall
+
+    cmp x21, #0             // if next pointer is null.. end loop
+    B.EQ endSaveFile        // End Loop
+
+    // Print New Line to File
+    mov x0, x20             // Get file descriptor
+    ldr x1, =szNewLine      // Get New Line string
+    mov x2, #1              // Set length to 1
+    mov x8, #64 		    // Write
+    svc 0                   // Call Syscall
+
+    mov x22, x21            // Move next node to current
+    b   loopLL              // Keep Looping
+
+    endSaveFile:
+    // Close File
+    mov x0, x20             // Get file descriptor
+    mov X8, #57 	        // Close file
+    svc 0			        // Execute syscall
+
+    mov x0, #0              // exit status code
+
+    ldr x23, [SP], #16      // Preserve
+    ldr x22, [SP], #16      // Preserve
+    ldr x21, [SP], #16      // Preserve
+    ldr x20, [SP], #16      // Preserve
     ldr LR, [SP], #16       // Load return location
     RET                     // Return
     
