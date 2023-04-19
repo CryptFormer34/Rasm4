@@ -304,28 +304,9 @@ loop3:
 // x1 = String Address to search for
 // Returns:
 // x0 = int
-// Returns last occurrence of a string in the string
+// Returns last occurrence of a string in the string. Ignores case.
 indexOf:
-    //preserve registers
-    str LR, [SP, #-16]!
-
-    str x1, [SP, #-16]!     //PUSH so can use as general purpose register
-    str x2, [SP, #-16]!     //PUSH so can use as general purpose register
-    str x3, [SP, #-16]!     //PUSH so can use as general purpose register
-    str x4, [SP, #-16]!     //PUSH so can use as general purpose register
-    str x5, [SP, #-16]!     //PUSH so can use as general purpose register
-    str x6, [SP, #-16]!     //PUSH so can use as general purpose register
-    str x7, [SP, #-16]!     //PUSH so can use as general purpose register
-    str x8, [SP, #-16]!     //PUSH so can use as general purpose register
-    str x9, [SP, #-16]!     //PUSH so can use as general purpose register
-    str x10, [SP, #-16]!     //PUSH so can use as general purpose register
-    str x11, [SP, #-16]!     //PUSH so can use as general purpose register
-    str x12, [SP, #-16]!     //PUSH so can use as general purpose register
-    str x13, [SP, #-16]!     //PUSH so can use as general purpose register
-    str x14, [SP, #-16]!     //PUSH so can use as general purpose register
-    str x15, [SP, #-16]!     //PUSH so can use as general purpose register
-    str x16, [SP, #-16]!     //PUSH so can use as general purpose register
-    str x17, [SP, #-16]!     //PUSH so can use as general purpose register
+    str LR, [SP, #-16]!     // Store linker
     str x18, [SP, #-16]!     //PUSH so can use as general purpose register
     str x19, [SP, #-16]!     //PUSH so can use as general purpose register
     str x20, [SP, #-16]!     //PUSH so can use as general purpose register
@@ -339,106 +320,106 @@ indexOf:
     str x28, [SP, #-16]!     //PUSH so can use as general purpose register
     str x29, [SP, #-16]!     //PUSH so can use as general purpose register
 
-    //x0 = s1 length (index)
-    //x1 = s2
-    //x2 = temp index for loop
-    //x3 = cuurent character of s1
-    //x4 = s1
-    //x5 = s2 index (final)
-    //x6 = s2 index (in loop)
-    //x7 = first character of s2
+    mov x20, x0             // moves x0 into x20 (string to search)
+    mov x21, x1             // moves x1 into x21 (string to search for)
+
+    // Get lengths and test if should search
+    bl String_length
+    mov x22, x0             // moves x0 into x22 (length of string to search)
+    mov x0, x21             // moves x21 into x0 (string to search for)
+    bl String_length        // gets length of string to search for
+    mov x23, x0             // moves x0 into x23 (length of string to search for)
+
+    cmp x22, x23            // compares x22 and x23
+    B.LT indexOfNone        // if x22 is less than x23 jump to exit
 
     // Convert to lowercase
-    mov x23, x1             // Copy address
+    mov x0, x20             // Move address into x0
+    bl String_copy          // Copy string
+    bl String_toLowerCase   // Convert to lowercase
+    mov x20, x0             // Copy address into x20
+
+    mov x0, x21             // Copy into x0
     bl String_copy          // Copy string in x0
     bl String_toLowerCase
-    mov x24, x0             // Copy address into x24
+    mov x21, x0             // Copy into x23
 
-    mov x0, x23             // Copy into x0
-    bl String_copy          // Copy string in x0
-    bl String_toLowerCase
-    mov x23, x0             // Copy into x23
-    mov x0, x24             // Move into x0 (String Address)
+    // Init variables
+    mov x24, #0             // i = 0
+    mov x25, #0             // z = 0
+    mov x26, #0             // string byte
+    mov x27, #0             // search byte
+    // x22 = length of string
+    // x23 = length of substring
 
-    // Compare the two strings
-    bl String_length        // Calls function
-    mov x1, x23             // Setups x1 to have length of string 0
+    loopIndexOf1:
+    sub x28, x22, x23       // length - i
+    cmp x24, x28            // compares x24 and x28
+    B.GT indexOfNoneWMalloc
 
-    mov x22, #0             // Init counter = 0
-    ldrb w7, [x1, #0]    //loads first s2 character value into w7
-    
-SLIO3_loopreturn:
-    mov x6, #0           //moves 0 into x6
-    mov x25, #-1          //moves -1 into x5
-    ldrb w7, [x1, #0]    //loads first s2 character value into w7
-SLIO3_loop:
-    ldrb w3, [x24, x0]    //loads current index value into w3
-    cmp w3, w7           //compares w3 and character in w1
-    B.EQ SLIO3_match            //if equal jump to exit
-    sub x0, x0, #1       //x0 = x0 - 1
-    cmp x0, #0           //compares x2 and x0
-    B.LT SLIO3_exit            //if greater than jump to exit
-    b SLIO3_loop               //unconditional jump to top of loop
+    mov x19, #1             // match = true
+    mov x25, #0             // z = 0
+    loopIndexOf2:
+        cmp x25, x23        // z < substr.length()
+        B.GE loopIndexOf2End
 
-    //while (byte != x1 character or index <= string_length)
-SLIO3_match:
-    mov x25, x0      //moves x0 into x5
-    mov x22, x0      //moves x0 into x4
-    sub x0, x0, #1  //x0 = x0 - 1
-SLIO3_loop2:
-    add x6, x6, #1       //x6 = x6 + 1
-    add x22, x22, #1       //x2 = x2 + 1
-    ldrb w3, [x24, x22]    //loads current index value into w3
-    ldrb w7, [x1, x6]    //loads s2 character value into w7
+        // Begin if statement
+        add x18, x24, x25       // z + i
+        ldrb w26, [x20, x18]    // Load byte from string
+        ldrb w27, [x21, x25]    // Load byte from search string
+        cmp x26, x27            // Compare bytes
+        B.NE indexOfIf1         // If not equal jump to exit
+        B indexOfIfS1           // Skip over
 
-    cmp w7, #0           //compare w7 to null
-    B.EQ SLIO3_exit            //if equal jump to exit
-    cmp w3, w7           //compares w3 and w7
-    B.NE SLIO3_loopreturn      //if not equal jump to loopreturn
+        indexOfIf1:
+            mov x19, #0         // match = false
+            B loopIndexOf2End   // Break out of loop
+        // End if statement
+        indexOfIfS1:
 
-    b SLIO3_loop2              //unconditional jumpt to loop2
+        add x25, x25, #1    // z++ Increment index
+        B loopIndexOf2
+    loopIndexOf2End:
+    cmp x19, #1             // if match is successfull
+    B.EQ indexOfFoundMatch  // If true, return index
 
-SLIO3_exit:
+    add x24, x24, #1        // Increment index
+    B loopIndexOf1          // i++ keep looping
+
+indexOfFoundMatch:
     // Free Memory
-    mov x0, x23
-    bl free
-    mov x0, x24
-    bl free
+    mov x0, x20             // load string address
+    bl free                 // free memory
+    mov x0, x21             // load string address
+    bl free                 // free memory
+    mov x0, x24             // moves x24 into x0 (index)
+    B indexOfExit2
 
-    mov x0, x25           //moves x5 (index) into x0
+indexOfNone:
+    mov x0, #-1             // moves -1 into x0 (index)
+    B indexOfExit2          // Exit
 
-    //load values back into registers in reverse order
-    ldr x29, [SP], #16   //POP so value is restored in register
-    ldr x28, [SP], #16   //POP so value is restored in register
-    ldr x27, [SP], #16   //POP so value is restored in register
-    ldr x26, [SP], #16   //POP so value is restored in register
-    ldr x25, [SP], #16   //POP so value is restored in register
-    ldr x24, [SP], #16   //POP so value is restored in register
-    ldr x23, [SP], #16   //POP so value is restored in register
-    ldr x22, [SP], #16   //POP so value is restored in register
-    ldr x21, [SP], #16   //POP so value is restored in register
-    ldr x20, [SP], #16   //POP so value is restored in register
-    ldr x19, [SP], #16   //POP so value is restored in register
-    ldr x18, [SP], #16   //POP so value is restored in register
-    ldr x17, [SP], #16   //POP so value is restored in register
-    ldr x16, [SP], #16   //POP so value is restored in register
-    ldr x15, [SP], #16   //POP so value is restored in register
-    ldr x14, [SP], #16   //POP so value is restored in register
-    ldr x13, [SP], #16   //POP so value is restored in register
-    ldr x12, [SP], #16   //POP so value is restored in register
-    ldr x11, [SP], #16   //POP so value is restored in register
-    ldr x10, [SP], #16   //POP so value is restored in register
-    ldr x9, [SP], #16    //POP so value is restored in register
-    ldr x8, [SP], #16    //POP so value is restored in register
-    ldr x7, [SP], #16    //POP so value is restored in register
-    ldr x6, [SP], #16    //POP so value is restored in register
-    ldr x5, [SP], #16    //POP so value is restored in register
-    ldr x4, [SP], #16    //POP so value is restored in register
-    ldr x3, [SP], #16    //POP so value is restored in register
-    ldr x2, [SP], #16    //POP so value is restored in register
-    ldr x1, [SP], #16    //POP so value is restored in register
+indexOfNoneWMalloc:
+    // Free Memory
+    mov x0, x20             // load string address
+    bl free                 // free memory
+    mov x0, x21             // load string address
+    bl free                 // free memory
+    mov x0, #-1             // moves -1 into x0 (index)
+    B indexOfExit2          // Exit
 
-    ldr LR, [SP], #16   //pop back link register back into place
-    RET                 //jump back to calling program location
-
-//==================================================//
+indexOfExit2:
+    ldr x29, [SP], #16      //POP so value is restored in register
+    ldr x28, [SP], #16      //POP so value is restored in register
+    ldr x27, [SP], #16      //POP so value is restored in register
+    ldr x26, [SP], #16      //POP so value is restored in register
+    ldr x25, [SP], #16      //POP so value is restored in register
+    ldr x24, [SP], #16      //POP so value is restored in register
+    ldr x23, [SP], #16      //POP so value is restored in register
+    ldr x22, [SP], #16      //POP so value is restored in register
+    ldr x21, [SP], #16      //POP so value is restored in register
+    ldr x20, [SP], #16      //POP so value is restored in register
+    ldr x19, [SP], #16      //POP so value is restored in register
+    ldr x18, [SP], #16      //POP so value is restored in register
+    ldr LR, [SP], #16       //pop back link register back into place
+    RET                     //jump back to calling program location

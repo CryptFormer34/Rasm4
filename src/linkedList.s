@@ -389,6 +389,11 @@ loopString:
     // Load next node
     ldr x20, [x24, #8]      // Load last 8 bytes (node address)
     add x21, x21, #1        // Increment count
+
+    // Debug
+    // mov x0, x21
+    // bl printIndex
+
     ldr x0, [x24]           // Param: The string to search (first 8 bytes)
     mov x1, x22             // Param: The string to find
     bl  indexOf             // find substring
